@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fries Catcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="rotate-nudge">
+    <div>
+      <div class="icon">📱</div>
+      <div>Rotate device to</div>
+      <div style="color:#ffb547; font-size:32px; margin-top:8px">LANDSCAPE</div>
+    </div>
+  </div>
+  <div id="stage">
+    <div id="game" data-screen-label="01 Game">
+      <div id="bg-veil"></div>
+      <canvas id="play"></canvas>
+
+      <!-- HUD -->
+      <div class="hud">
+        <div class="hud-card score" id="scoreCard">
+          <div class="score-icon" id="scoreIcon"></div>
+          <div>
+            <div class="label">FRIES</div>
+            <div class="value" id="scoreVal">0</div>
+          </div>
+        </div>
+        <div class="hud-right">
+          <div class="hud-card timer" id="timerCard">
+            <div>
+              <div class="label" style="text-align:right">TIME</div>
+              <div class="value" id="timerVal">50</div>
+            </div>
+          </div>
+          <button class="stop-btn" id="stopBtn" aria-label="Pause" title="Pause">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><rect x="6" y="5" width="4" height="14" fill="currentColor" stroke="none" rx="1"/><rect x="14" y="5" width="4" height="14" fill="currentColor" stroke="none" rx="1"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pause overlay -->
+      <div class="overlay hidden" id="pauseScreen">
+        <div class="panel">
+          <div class="title">PAUSED</div>
+          <div class="subtitle">Take a breath — the fries will wait.</div>
+          <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:8px">
+            <button class="btn" id="resumeBtn">RESUME</button>
+            <button class="btn btn-alt" id="restartBtn">RESTART</button>
+            <button class="btn btn-alt" id="homeBtn">HOME</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="combo-badge" id="comboBadge">COMBO ×2</div>
+
+      <div class="drag-hint" id="dragHint">🎮 tilt or use stick to move</div>
+
+
+      <div class="flash-good" id="flashGood"></div>
+      <div class="flash-bad" id="flashBad"></div>
+      <div id="countdown"></div>
+
+      <!-- Start overlay -->
+      <div class="overlay" id="startScreen">
+        <div class="panel">
+          <div class="title">FRIES<br>CATCHER</div>
+          <div class="subtitle">Catch the fries. Dodge the worms.</div>
+          <div class="rules">
+            <div class="rule">
+              <div class="swatch sw-fry"></div>
+              <div>Fries → <strong>+1</strong> fry</div>
+            </div>
+            <div class="rule bad">
+              <div class="swatch sw-worm"></div>
+              <div>Worm → <strong>−3</strong> fries</div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+            <button class="btn-ds" id="connectBtn">🎮 Connect DualSense</button>
+            <button class="btn" id="startBtn">START</button>
+          </div>
+ 
+        </div>
+      </div>
+
+      <!-- Game over overlay -->
+      <div class="overlay hidden" id="endScreen">
+        <div class="panel">
+          <div class="title">TIME'S UP!</div>
+          <div class="big-score" id="finalScore">0</div>
+          <div class="score-label">Fries Caught</div>
+          <div class="stats">
+            <div class="stat">
+              <div class="n" id="bestStreak">0</div>
+              <div class="l">Best Streak</div>
+            </div>
+            <div class="stat">
+              <div class="n" id="wormsHit">0</div>
+              <div class="l">Worms Hit</div>
+            </div>
+          </div>
+          <button class="btn" id="againBtn">PLAY AGAIN</button>
+          <button class="btn btn-alt" id="againHomeBtn" style="margin-left:10px">HOME</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="dualsense.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fries Catcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    font-family: 'Nunito', system-ui, sans-serif;
+    background: #1a1208;
+    user-select: none; -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  #stage {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background:
+      radial-gradient(ellipse at center, #1a1208 0%, #0d0906 70%);
+    padding: 0;
+  }
+  /* Portrait / too-narrow nudge */
+  .rotate-nudge {
+    position: fixed; inset: 0;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(8,5,3,0.92);
+    color: #ffe1a8;
+    z-index: 100;
+    font-family: 'Bangers', sans-serif;
+    letter-spacing: 2px;
+    font-size: 24px;
+    text-align: center;
+    padding: 24px;
+  }
+  .rotate-nudge .icon { font-size: 64px; margin-bottom: 16px; animation: rotSpin 2.2s ease-in-out infinite; display: inline-block; }
+  @keyframes rotSpin {
+    0%, 40% { transform: rotate(0); }
+    60%, 100% { transform: rotate(-90deg); }
+  }
+  @media (orientation: portrait) and (max-width: 900px) {
+    .rotate-nudge { display: flex; flex-direction: column; }
+  }
+
+  /* iPad landscape stage: 1180 x 820 (iPad Pro 11" landscape-ish). Scales to fit viewport. */
+  #game {
+    position: relative;
+    width: 1180px; height: 820px;
+    transform-origin: center center;
+    background-image: url('assets/Background1.png');
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+    box-shadow: 0 0 80px rgba(0,0,0,0.6);
+    border-radius: 22px;
+    cursor: grab;
+    flex-shrink: 0;
+  }
+  #game.dragging { cursor: grabbing; }
+
+  /* Background dimmer to keep gameplay readable */
+  #bg-veil {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%),
+      linear-gradient(180deg, rgba(8,6,4,0.35) 0%, rgba(8,6,4,0.25) 50%, rgba(8,6,4,0.55) 100%);
+    backdrop-filter: blur(1.5px) saturate(0.85);
+    -webkit-backdrop-filter: blur(1.5px) saturate(0.85);
+    pointer-events: none;
+  }
+
+  canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    display: block;
+  }
+
+  /* HUD */
+  .hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 24px 32px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    pointer-events: none;
+    z-index: 5;
+    gap: 12px;
+  }
+  .hud-right {
+    display: flex; align-items: flex-start; gap: 10px;
+    pointer-events: none;
+  }
+  .hud-right > * { pointer-events: auto; }
+
+  .stop-btn {
+    pointer-events: auto;
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    background: rgba(20, 12, 6, 0.72);
+    border: 2px solid rgba(255, 220, 120, 0.35);
+    color: #ffe1a8;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: transform 0.1s ease, background 0.15s ease;
+    margin-left: 0;
+  }
+  .stop-btn:hover { background: rgba(40, 24, 12, 0.85); transform: translateY(-1px); }
+  .stop-btn:active { transform: translateY(1px); }
+
+  .btn-alt {
+    background: linear-gradient(180deg, #fff6e1 0%, #ffdc9a 100%) !important;
+    color: #7a2a00 !important;
+    text-shadow: 1px 1px 0 rgba(255,255,255,0.4) !important;
+    border-color: #7a2a00 !important;
+  }
+  .hud-card {
+    background: rgba(20, 12, 6, 0.72);
+    border: 2px solid rgba(255, 220, 120, 0.35);
+    border-radius: 18px;
+    padding: 12px 22px;
+    color: #fff6d8;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: transform 0.15s ease;
+  }
+  .hud-card .label {
+    font-family: 'Bangers', sans-serif;
+    font-size: 16px; letter-spacing: 3px;
+    color: #f8c96c;
+    line-height: 1;
+    opacity: 0.9;
+  }
+  .hud-card .value {
+    font-family: 'Bangers', sans-serif;
+    font-size: 44px; letter-spacing: 2px;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.4);
+  }
+  .hud-card.timer.urgent {
+    border-color: #ff6a3d;
+    animation: pulse 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes pulse {
+    from { transform: scale(1); box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+    to   { transform: scale(1.04); box-shadow: 0 4px 22px rgba(255,90,60,0.55); }
+  }
+
+  .score-icon {
+    width: 54px; height: 36px;
+    background-image: url('assets/FrenchFries_Score.png');
+    background-size: contain; background-repeat: no-repeat; background-position: center;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+    transition: transform 0.2s ease;
+  }
+  .score-icon.fire {
+    background-image: url('assets/FrenchFries_Score_Fire.png');
+    width: 60px; height: 48px;
+    animation: fireWobble 0.4s ease-in-out infinite alternate;
+  }
+  @keyframes fireWobble {
+    from { transform: scale(1) rotate(-3deg); }
+    to   { transform: scale(1.08) rotate(3deg); }
+  }
+
+  .combo-badge {
+    position: absolute;
+    top: 118px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #ff7a2e, #ffb547);
+    color: #2a1300;
+    font-family: 'Bangers', sans-serif;
+    letter-spacing: 3px;
+    padding: 10px 28px;
+    border-radius: 999px;
+    font-size: 28px;
+    box-shadow: 0 6px 22px rgba(255, 120, 40, 0.55), inset 0 1px 0 rgba(255,255,255,0.4);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .combo-badge.visible {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  .combo-badge.bump {
+    transform: translateX(-50%) scale(1.18);
+  }
+
+  /* Drag hint */
+  .drag-hint {
+    position: absolute; bottom: 24%; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 999px;
+    font-size: 18px; font-weight: 700;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255,255,255,0.18);
+    pointer-events: none;
+    z-index: 5;
+    animation: hintFloat 1.6s ease-in-out infinite alternate;
+  }
+  @keyframes hintFloat {
+    from { transform: translate(-50%, 0); opacity: 0.85; }
+    to   { transform: translate(-50%, -6px); opacity: 1; }
+  }
+  .drag-hint.hidden { display: none; }
+
+  /* Overlay screens */
+  .overlay {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(20,10,4,0.55) 0%, rgba(5,3,2,0.85) 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 18px;
+    padding: 32px;
+    z-index: 10;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .overlay.hidden { display: none; }
+
+  .panel {
+    background: linear-gradient(180deg, #fff6e1 0%, #ffe1a8 100%);
+    color: #3b1e00;
+    border-radius: 28px;
+    padding: 40px 48px 36px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.55), inset 0 2px 0 rgba(255,255,255,0.6);
+    max-width: 560px;
+    width: 100%;
+    border: 4px solid #c9860a;
+  }
+
+  .title {
+    font-family: 'Bangers', sans-serif;
+    font-size: 76px;
+    letter-spacing: 3px;
+    color: #c0450f;
+    text-shadow: 3px 3px 0 #ffdc7a, 6px 6px 0 rgba(0,0,0,0.12);
+    line-height: 0.95;
+    margin-bottom: 10px;
+  }
+  .subtitle {
+    font-weight: 900;
+    font-size: 18px;
+    color: #6a3a0a;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
+    margin-bottom: 18px;
+  }
+
+  .rules {
+    display: flex; flex-direction: column; gap: 14px;
+    text-align: left;
+    margin: 16px 0 24px;
+    padding: 18px 22px;
+    background: rgba(255,255,255,0.55);
+    border-radius: 18px;
+    border: 2px dashed rgba(192, 69, 15, 0.4);
+  }
+  .rule {
+    display: flex; align-items: center; gap: 16px;
+    font-weight: 700; font-size: 18px; color: #3b1e00;
+  }
+  .rule .swatch {
+    width: 48px; height: 48px;
+    background-size: contain; background-repeat: no-repeat; background-position: center;
+    flex-shrink: 0;
+  }
+  .rule .sw-fry { background-image: url('assets/FrenchFries_1.png'); }
+  .rule .sw-worm { background-image: url('assets/Worm_3.png'); }
+  .rule strong { color: #c0450f; }
+  .rule.bad strong { color: #8a2a0e; }
+
+  .big-score {
+    font-family: 'Bangers', sans-serif;
+    font-size: 108px;
+    color: #c0450f;
+    line-height: 1;
+    letter-spacing: 3px;
+    text-shadow: 4px 4px 0 #ffdc7a, 8px 8px 0 rgba(0,0,0,0.12);
+  }
+  .score-label {
+    font-weight: 900;
+    font-size: 15px;
+    color: #6a3a0a;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .stats {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; margin: 22px 0 12px;
+  }
+  .stat {
+    background: rgba(255,255,255,0.6);
+    border-radius: 14px;
+    padding: 12px;
+    border: 1px solid rgba(192, 69, 15, 0.25);
+  }
+  .stat .n {
+    font-family: 'Bangers', sans-serif;
+    font-size: 38px;
+    color: #c0450f;
+    letter-spacing: 1px;
+  }
+  .stat .l {
+    font-size: 13px; font-weight: 900; color: #6a3a0a;
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+
+  .btn {
+    font-family: 'Bangers', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    padding: 16px 44px;
+    background: linear-gradient(180deg, #ff8a2a 0%, #c0450f 100%);
+    color: #fff6e1;
+    border: 3px solid #7a2a00;
+    border-radius: 16px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #7a2a00, 0 10px 20px rgba(0,0,0,0.3);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+    margin-top: 4px;
+  }
+  .btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #7a2a00, 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .btn:hover { filter: brightness(1.06); }
+
+  /* Flash effects on full game for feedback */
+  .flash-good, .flash-bad {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 4;
+  }
+  .flash-good { background: radial-gradient(circle, rgba(255,220,100,0.35) 0%, transparent 70%); }
+  .flash-bad  { background: radial-gradient(circle, rgba(255,40,40,0.45) 0%, transparent 70%); }
+  .flash-good.ping { animation: flashPing 0.3s ease-out; }
+  .flash-bad.ping  { animation: flashPing 0.45s ease-out; }
+  @keyframes flashPing {
+    0% { opacity: 0; }
+    30% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* Screen shake */
+  #game.shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translate(0,0); }
+    15% { transform: translate(-8px, 4px); }
+    30% { transform: translate(7px, -3px); }
+    45% { transform: translate(-5px, 2px); }
+    60% { transform: translate(5px, -4px); }
+    75% { transform: translate(-3px, 2px); }
+    90% { transform: translate(2px, 0); }
+  }
+</style>
+</head>
+<body>
+  <div class="rotate-nudge">
+    <div>
+      <div class="icon">📱</div>
+      <div>Rotate device to</div>
+      <div style="color:#ffb547; font-size:32px; margin-top:8px">LANDSCAPE</div>
+    </div>
+  </div>
+  <div id="stage">
+    <div id="game" data-screen-label="01 Game">
+      <div id="bg-veil"></div>
+      <canvas id="play"></canvas>
+
+      <!-- HUD -->
+      <div class="hud">
+        <div class="hud-card score" id="scoreCard">
+          <div class="score-icon" id="scoreIcon"></div>
+          <div>
+            <div class="label">FRIES</div>
+            <div class="value" id="scoreVal">0</div>
+          </div>
+        </div>
+        <div class="hud-right">
+          <div class="hud-card timer" id="timerCard">
+            <div>
+              <div class="label" style="text-align:right">TIME</div>
+              <div class="value" id="timerVal">50</div>
+            </div>
+          </div>
+          <button class="stop-btn" id="stopBtn" aria-label="Pause" title="Pause">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><rect x="6" y="5" width="4" height="14" fill="currentColor" stroke="none" rx="1"/><rect x="14" y="5" width="4" height="14" fill="currentColor" stroke="none" rx="1"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pause overlay -->
+      <div class="overlay hidden" id="pauseScreen">
+        <div class="panel">
+          <div class="title">PAUSED</div>
+          <div class="subtitle">Take a breath — the fries will wait.</div>
+          <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:8px">
+            <button class="btn" id="resumeBtn">RESUME</button>
+            <button class="btn btn-alt" id="restartBtn">RESTART</button>
+            <button class="btn btn-alt" id="homeBtn">HOME</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="combo-badge" id="comboBadge">COMBO ×2</div>
+
+      <div class="drag-hint" id="dragHint">✋ drag the bucket</div>
+
+      <div class="flash-good" id="flashGood"></div>
+      <div class="flash-bad" id="flashBad"></div>
+
+      <!-- Start overlay -->
+      <div class="overlay" id="startScreen">
+        <div class="panel">
+          <div class="title">FRIES<br>CATCHER</div>
+          <div class="subtitle">Catch the fries. Dodge the worms.</div>
+          <div class="rules">
+            <div class="rule">
+              <div class="swatch sw-fry"></div>
+              <div>Fries → <strong>+1</strong> fry</div>
+            </div>
+            <div class="rule bad">
+              <div class="swatch sw-worm"></div>
+              <div>Worm → <strong>−3</strong> fries</div>
+            </div>
+            <div class="rule">
+              <div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:22px">🔥</div>
+              <div>Streak of 10 → <strong>FIRE combo</strong></div>
+            </div>
+          </div>
+          <button class="btn" id="startBtn">START</button>
+        </div>
+      </div>
+
+      <!-- Game over overlay -->
+      <div class="overlay hidden" id="endScreen">
+        <div class="panel">
+          <div class="title">TIME'S UP!</div>
+          <div class="big-score" id="finalScore">0</div>
+          <div class="score-label">Fries Caught</div>
+          <div class="stats">
+            <div class="stat">
+              <div class="n" id="bestStreak">0</div>
+              <div class="l">Best Streak</div>
+            </div>
+            <div class="stat">
+              <div class="n" id="wormsHit">0</div>
+              <div class="l">Worms Hit</div>
+            </div>
+          </div>
+          <button class="btn" id="againBtn">PLAY AGAIN</button>
+          <button class="btn btn-alt" id="againHomeBtn" style="margin-left:10px">HOME</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// =====================================================================
+// Fries Catcher — vanilla canvas game
+// =====================================================================
+(() => {
+  const game     = document.getElementById('game');
+  const canvas   = document.getElementById('play');
+  const ctx      = canvas.getContext('2d');
+  const scoreVal = document.getElementById('scoreVal');
+  const timerVal = document.getElementById('timerVal');
+  const timerCard= document.getElementById('timerCard');
+  const scoreIcon= document.getElementById('scoreIcon');
+  const comboBadge = document.getElementById('comboBadge');
+  const dragHint = document.getElementById('dragHint');
+  const flashGood= document.getElementById('flashGood');
+  const flashBad = document.getElementById('flashBad');
+  const startScreen = document.getElementById('startScreen');
+  const endScreen   = document.getElementById('endScreen');
+  const startBtn    = document.getElementById('startBtn');
+  const againBtn    = document.getElementById('againBtn');
+  const finalScore  = document.getElementById('finalScore');
+  const bestStreak  = document.getElementById('bestStreak');
+  const wormsHit    = document.getElementById('wormsHit');
+
+  // ---------- Asset loading ----------
+  const ASSET_PATHS = {
+    bucket: ['assets/Bucket_1.png', 'assets/Bucket_2.png', 'assets/Bucket_3.png', 'assets/Bucket_4.png'],
+    fries:  ['assets/FrenchFries_1.png', 'assets/FrenchFries_2.png', 'assets/FrenchFries_3.png', 'assets/FrenchFries_4.png'],
+    worms:  ['assets/Worm_1.png', 'assets/Worm_2.png', 'assets/Worm_3.png', 'assets/Worm_4.png'],
+  };
+  const img = (src) => new Promise((res) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = () => res(null);
+    i.src = src;
+  });
+  const assets = { bucket: [], fries: [], worms: [] };
+  async function loadAll() {
+    const b = await Promise.all(ASSET_PATHS.bucket.map(img));
+    const f = await Promise.all(ASSET_PATHS.fries.map(img));
+    const w = await Promise.all(ASSET_PATHS.worms.map(img));
+    assets.bucket = b.filter(Boolean);
+    assets.fries  = f.filter(Boolean);
+    assets.worms  = w.filter(Boolean);
+  }
+
+  // ---------- Canvas sizing ----------
+  let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+  // Fixed logical size: iPad landscape 1180x820. Stage CSS-scales to viewport.
+  const LOGICAL_W = 1180, LOGICAL_H = 820;
+  function fitStage() {
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const s = Math.min(vw / LOGICAL_W, vh / LOGICAL_H);
+    game.style.transform = `scale(${s})`;
+  }
+  function resize() {
+    W = LOGICAL_W; H = LOGICAL_H;
+    canvas.width  = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    if (bucket) {
+      bucket.y = H - 140;
+      bucket.x = Math.max(bucket.w/2, Math.min(W - bucket.w/2, bucket.x));
+    }
+    fitStage();
+  }
+  window.addEventListener('resize', () => { fitStage(); });
+
+  // ---------- Game state ----------
+  const STATES = { READY: 0, PLAYING: 1, OVER: 2, PAUSED: 3 };
+  let state = STATES.READY;
+
+  const bucket = {
+    x: 0, y: 0,
+    w: 140, h: 100,
+    targetX: 0,
+    angle: 0,        // gentle tilt while moving
+    squash: 0,       // animation on catch
+    hurt: 0,         // red tint on worm hit
+  };
+
+  /** falling items */
+  const items = [];     // {type:'fry'|'worm', x,y, vx,vy, rot, vr, w,h, img, alive}
+  const particles = []; // {x,y, vx,vy, life, maxLife, size, color, type}
+  const popups = [];    // {x,y, text, life, maxLife, color, size}
+
+  let score = 0;
+  let streak = 0;
+  let maxStreak = 0;
+  let wormsHitCount = 0;
+  let timeLeft = 50.0;
+  let spawnCooldown = 0;
+  let elapsed = 0;
+  let lastT = 0;
+
+  // ---------- Utility ----------
+  const rand = (a,b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  // ---------- Input (drag) ----------
+  let dragging = false;
+  let dragOffset = 0;
+
+  function pointerPos(e) {
+    const r = game.getBoundingClientRect();
+    const pt = (e.touches && e.touches[0]) || e;
+    // Invert the CSS scale so coords map to logical 1180x820
+    const sx = r.width / LOGICAL_W || 1;
+    const sy = r.height / LOGICAL_H || 1;
+    return { x: (pt.clientX - r.left) / sx, y: (pt.clientY - r.top) / sy };
+  }
+  function onDown(e) {
+    if (state !== STATES.PLAYING) return;
+    const p = pointerPos(e);
+    // Allow grabbing anywhere below midline OR directly on bucket; drag from bucket anchor
+    const onBucket = Math.abs(p.x - bucket.x) < bucket.w*0.7 && Math.abs(p.y - bucket.y) < bucket.h*1.2;
+    dragging = true;
+    dragOffset = onBucket ? (bucket.x - p.x) : 0;
+    bucket.targetX = p.x + dragOffset;
+    game.classList.add('dragging');
+    dragHint.classList.add('hidden');
+    e.preventDefault();
+  }
+  function onMove(e) {
+    if (!dragging || state !== STATES.PLAYING) return;
+    const p = pointerPos(e);
+    bucket.targetX = p.x + dragOffset;
+    e.preventDefault();
+  }
+  function onUp() {
+    dragging = false;
+    game.classList.remove('dragging');
+  }
+  game.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  game.addEventListener('touchstart', onDown, { passive: false });
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('touchend', onUp);
+
+  // Keyboard fallback
+  const keys = {};
+  window.addEventListener('keydown', (e) => { keys[e.key] = true; });
+  window.addEventListener('keyup',   (e) => { keys[e.key] = false; });
+
+  // ---------- Spawning ----------
+  function spawnItem() {
+    // chance of worm increases slightly over time, from 22% → 38%
+    const wormChance = 0.22 + Math.min(0.16, elapsed / 400);
+    const isWorm = Math.random() < wormChance;
+    const type = isWorm ? 'worm' : 'fry';
+
+    const imgArr = isWorm ? assets.worms : assets.fries;
+    const image = imgArr.length ? pick(imgArr) : null;
+
+    // Size: fries smaller, worms chunkier
+    let w, h;
+    if (isWorm) {
+      w = rand(86, 118);
+      const ar = image ? image.naturalHeight / image.naturalWidth : 0.6;
+      h = w * ar;
+    } else {
+      w = rand(68, 108);
+      const ar = image ? image.naturalHeight / image.naturalWidth : 1.8;
+      h = w * ar;
+    }
+
+    const x = rand(w/2 + 10, W - w/2 - 10);
+
+    // Base fall speed; increases significantly with elapsed time.
+    // At t=0   speedBoost = 1.0
+    // At t=25s speedBoost ~= 1.5
+    // At t=50s speedBoost ~= 2.1 (capped)
+    const speedBoost = 1 + Math.min(1.2, elapsed / 42);
+    const vy = rand(150, 230) * speedBoost;
+    const vx = rand(-40, 40);
+
+    items.push({
+      type, x, y: -h, vx, vy,
+      rot: rand(-0.3, 0.3),
+      vr: rand(-1.5, 1.5),
+      w, h,
+      img: image,
+      alive: true,
+    });
+  }
+
+  // ---------- Collision & feedback ----------
+  function rectHitsBucket(it) {
+    // Bucket catch zone: upper half opening of the bucket
+    const bx = bucket.x, by = bucket.y;
+    const openW = bucket.w * 0.78;
+    const openH = bucket.h * 0.55;
+    const openTop = by - bucket.h * 0.35;
+    const openBot = by + openH * 0.25;
+    const left = bx - openW/2;
+    const right = bx + openW/2;
+
+    // Item center roughly within opening rect
+    return (it.x > left && it.x < right && it.y + it.h*0.3 > openTop && it.y - it.h*0.2 < openBot);
+  }
+
+  function catchFry(it) {
+    score += 1;
+    streak += 1;
+    if (streak > maxStreak) maxStreak = streak;
+    bucket.squash = 1.0;
+    updateHUD();
+    burst(it.x, it.y, '#ffd96a', 14);
+    addPopup(it.x, it.y - 10, '+1', '#ffe069', 22);
+    flash(flashGood);
+    checkCombo('fry');
+  }
+
+  function hitWorm(it) {
+    score = Math.max(0, score - 3);
+    streak = 0;
+    wormsHitCount += 1;
+    bucket.hurt = 1.0;
+    updateHUD();
+    burst(it.x, it.y, '#cdd27a', 22, true);
+    addPopup(it.x, it.y - 10, '-3', '#ff5e5e', 28);
+    flash(flashBad);
+    shake();
+    checkCombo('worm');
+  }
+
+  let fireStreak = 0;       // catches since last worm hit (drives the fire multiplier)
+  let fireActive = false;   // once fireStreak hits 10, stays on until worm hit
+  function checkCombo(trigger) {
+    // trigger: 'fry' | 'worm' | 'init'
+    if (trigger === 'worm') {
+      fireActive = false;
+      fireStreak = 0;
+    } else if (trigger === 'fry') {
+      fireStreak += 1;
+      if (fireStreak >= 10) fireActive = true;
+    }
+    scoreIcon.classList.toggle('fire', fireActive);
+    if (fireActive) {
+      // mult ramps up every additional 10 caught since fire started
+      const mult = Math.floor(fireStreak / 10) + 1;
+      comboBadge.textContent = `COMBO ×${mult} 🔥`;
+      comboBadge.classList.add('visible', 'bump');
+      clearTimeout(comboBadge._t);
+      comboBadge._t = setTimeout(() => comboBadge.classList.remove('bump'), 220);
+    } else {
+      comboBadge.classList.remove('visible', 'bump');
+    }
+  }
+
+  function flash(el) {
+    el.classList.remove('ping');
+    void el.offsetWidth;
+    el.classList.add('ping');
+  }
+  function shake() {
+    game.classList.remove('shake');
+    void game.offsetWidth;
+    game.classList.add('shake');
+  }
+
+  function burst(x, y, color, n, worm=false) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = rand(worm ? 80 : 50, worm ? 220 : 160);
+      particles.push({
+        x, y,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s - (worm ? 30 : 80),
+        life: 0, maxLife: rand(0.45, 0.85),
+        size: rand(3, worm ? 7 : 5),
+        color, type: worm ? 'worm' : 'fry',
+      });
+    }
+  }
+  function addPopup(x, y, text, color, size) {
+    popups.push({ x, y, text, color, size, life: 0, maxLife: 0.9 });
+  }
+
+  // ---------- Update & render ----------
+  function updateHUD() {
+    scoreVal.textContent = score;
+    timerVal.textContent = Math.max(0, Math.ceil(timeLeft));
+    if (timeLeft <= 10) timerCard.classList.add('urgent');
+    else timerCard.classList.remove('urgent');
+  }
+
+  function update(dt) {
+    if (state !== STATES.PLAYING) return;
+
+    elapsed += dt;
+    timeLeft -= dt;
+    if (timeLeft <= 0) {
+      timeLeft = 0;
+      endGame();
+    }
+    updateHUD();
+
+    // Keyboard
+    if (keys['ArrowLeft']  || keys['a']) bucket.targetX -= 520 * dt;
+    if (keys['ArrowRight'] || keys['d']) bucket.targetX += 520 * dt;
+
+    // Bucket smoothing
+    bucket.targetX = clamp(bucket.targetX, bucket.w/2 + 4, W - bucket.w/2 - 4);
+    const prevX = bucket.x;
+    bucket.x += (bucket.targetX - bucket.x) * Math.min(1, dt * 14);
+    const dx = bucket.x - prevX;
+    bucket.angle += (clamp(dx * 0.01, -0.25, 0.25) - bucket.angle) * 0.2;
+    bucket.squash = Math.max(0, bucket.squash - dt * 3.5);
+    bucket.hurt   = Math.max(0, bucket.hurt   - dt * 2.2);
+
+    // Spawning
+    spawnCooldown -= dt;
+    if (spawnCooldown <= 0) {
+      spawnItem();
+      // Start slow, ramp up over 45s. base 1.25s → min 0.35s
+      const base = 1.25;
+      const min = 0.35;
+      spawnCooldown = Math.max(min, base - elapsed * 0.020) * rand(0.75, 1.2);
+    }
+
+    // Items
+    for (const it of items) {
+      if (!it.alive) continue;
+      it.x += it.vx * dt;
+      it.y += it.vy * dt;
+      it.rot += it.vr * dt;
+
+      // wall bounce for horizontal drift
+      if (it.x < it.w/2) { it.x = it.w/2; it.vx *= -0.6; }
+      if (it.x > W - it.w/2) { it.x = W - it.w/2; it.vx *= -0.6; }
+
+      if (rectHitsBucket(it)) {
+        it.alive = false;
+        if (it.type === 'fry') catchFry(it);
+        else hitWorm(it);
+      } else if (it.y - it.h/2 > H + 20) {
+        it.alive = false;
+        if (it.type === 'fry') {
+          streak = 0; // missed a fry resets streak counter, but keeps fire if active
+        }
+      }
+    }
+    for (let i = items.length - 1; i >= 0; i--) if (!items[i].alive) items.splice(i, 1);
+
+    // Particles
+    for (const p of particles) {
+      p.life += dt;
+      p.vy += 520 * dt; // gravity
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+    for (let i = particles.length - 1; i >= 0; i--) if (particles[i].life >= particles[i].maxLife) particles.splice(i, 1);
+
+    // Popups
+    for (const p of popups) {
+      p.life += dt;
+      p.y -= 40 * dt;
+    }
+    for (let i = popups.length - 1; i >= 0; i--) if (popups[i].life >= popups[i].maxLife) popups.splice(i, 1);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Items
+    for (const it of items) {
+      ctx.save();
+      ctx.translate(it.x, it.y);
+      ctx.rotate(it.rot);
+
+      // Shadow on ground plane (approximate)
+      const shadowY = H - 50 - it.y;
+      if (shadowY < 260 && shadowY > 0) {
+        // nothing — shadow effect under bucket drawn separately
+      }
+
+      if (it.img) {
+        ctx.drawImage(it.img, -it.w/2, -it.h/2, it.w, it.h);
+      } else {
+        // Fallback shapes
+        if (it.type === 'fry') {
+          ctx.fillStyle = '#ffcc33';
+          ctx.strokeStyle = '#a06600';
+          ctx.lineWidth = 3;
+          ctx.fillRect(-it.w/2, -it.h/2, it.w, it.h);
+          ctx.strokeRect(-it.w/2, -it.h/2, it.w, it.h);
+        } else {
+          ctx.fillStyle = '#e9ecc6';
+          ctx.strokeStyle = '#6c6a3e';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, it.w/2, it.h/2, 0, 0, Math.PI*2);
+          ctx.fill(); ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    // Bucket shadow
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(bucket.x, bucket.y + bucket.h*0.46, bucket.w*0.48, bucket.h*0.12, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // Bucket
+    const squashY = 1 - bucket.squash * 0.08;
+    const squashX = 1 + bucket.squash * 0.10;
+    ctx.save();
+    ctx.translate(bucket.x, bucket.y);
+    ctx.rotate(bucket.angle);
+    ctx.scale(squashX, squashY);
+    // Red tint when hurt
+    if (bucket.hurt > 0) {
+      ctx.shadowColor = `rgba(255, 50, 50, ${0.8 * bucket.hurt})`;
+      ctx.shadowBlur = 24;
+    }
+    // Tier skin: swap every 5 fries → Bucket_1 (empty) → 2 → 3 → 4 (overloaded)
+    // ASSET_PATHS.bucket is ordered [Bucket_1, Bucket_2, Bucket_3, Bucket_4]
+    const tier = Math.min(3, Math.floor(score / 5));
+    const bimg = assets.bucket[tier] || assets.bucket[0];
+    if (bimg) {
+      const ar = bimg.naturalHeight / bimg.naturalWidth;
+      const bw = bucket.w, bh = bw * ar;
+      ctx.drawImage(bimg, -bw/2, -bh/2, bw, bh);
+    } else {
+      ctx.fillStyle = '#b0b0b0';
+      ctx.fillRect(-bucket.w/2, -bucket.h/2, bucket.w, bucket.h);
+    }
+    ctx.restore();
+
+    // Particles
+    for (const p of particles) {
+      const t = p.life / p.maxLife;
+      ctx.save();
+      ctx.globalAlpha = 1 - t;
+      ctx.fillStyle = p.color;
+      if (p.type === 'fry') {
+        ctx.fillRect(p.x - p.size/2, p.y - p.size*1.5, p.size, p.size*3);
+      } else {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Popups
+    for (const p of popups) {
+      const t = p.life / p.maxLife;
+      ctx.save();
+      ctx.globalAlpha = 1 - t;
+      ctx.font = `900 ${p.size}px 'Bangers', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillStyle = p.color;
+      ctx.strokeText(p.text, p.x, p.y);
+      ctx.fillText(p.text, p.x, p.y);
+      ctx.restore();
+    }
+  }
+
+  function loop(now) {
+    if (!lastT) lastT = now;
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+    update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- Game flow ----------
+  function resetGame() {
+    items.length = 0;
+    particles.length = 0;
+    popups.length = 0;
+    score = 0;
+    streak = 0;
+    maxStreak = 0;
+    wormsHitCount = 0;
+    timeLeft = 50;
+    elapsed = 0;
+    spawnCooldown = 0.8;
+    fireActive = false;
+    fireStreak = 0;
+    bucket.w = 230;
+    bucket.h = bucket.w * 0.72;
+    bucket.x = W / 2;
+    bucket.targetX = W / 2;
+    bucket.y = H - 140;
+    scoreIcon.classList.remove('fire');
+    comboBadge.classList.remove('visible', 'bump');
+    timerCard.classList.remove('urgent');
+    updateHUD();
+  }
+
+  function startGame() {
+    resetGame();
+    state = STATES.PLAYING;
+    startScreen.classList.add('hidden');
+    endScreen.classList.add('hidden');
+    dragHint.classList.remove('hidden');
+    setTimeout(() => dragHint.classList.add('hidden'), 2800);
+  }
+  function endGame() {
+    state = STATES.OVER;
+    finalScore.textContent = score;
+    bestStreak.textContent = maxStreak;
+    wormsHit.textContent = wormsHitCount;
+    endScreen.classList.remove('hidden');
+  }
+
+  startBtn.addEventListener('click', startGame);
+  againBtn.addEventListener('click', startGame);
+  document.getElementById('againHomeBtn').addEventListener('click', () => goHome());
+
+  const stopBtn     = document.getElementById('stopBtn');
+  const pauseScreen = document.getElementById('pauseScreen');
+  const resumeBtn   = document.getElementById('resumeBtn');
+  const restartBtn  = document.getElementById('restartBtn');
+  const homeBtn     = document.getElementById('homeBtn');
+
+  function pauseGame() {
+    if (state !== STATES.PLAYING) return;
+    state = STATES.PAUSED;
+    pauseScreen.classList.remove('hidden');
+    dragging = false;
+    game.classList.remove('dragging');
+  }
+  function resumeGame() {
+    if (state !== STATES.PAUSED) return;
+    state = STATES.PLAYING;
+    pauseScreen.classList.add('hidden');
+    lastT = 0; // avoid a big dt jump
+  }
+  function goHome() {
+    state = STATES.READY;
+    pauseScreen.classList.add('hidden');
+    endScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    items.length = 0; particles.length = 0; popups.length = 0;
+    score = 0; streak = 0; fireActive = false; fireStreak = 0;
+    timeLeft = 50;
+    scoreIcon.classList.remove('fire');
+    comboBadge.classList.remove('visible', 'bump');
+    timerCard.classList.remove('urgent');
+    updateHUD();
+  }
+  stopBtn.addEventListener('click', () => {
+    if (state === STATES.PLAYING) pauseGame();
+    else if (state === STATES.PAUSED) resumeGame();
+  });
+  resumeBtn.addEventListener('click', resumeGame);
+  restartBtn.addEventListener('click', startGame);
+  homeBtn.addEventListener('click', goHome);
+  // Esc shortcut
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (state === STATES.PLAYING) pauseGame();
+      else if (state === STATES.PAUSED) resumeGame();
+    }
+  });
+
+  // ---------- Boot ----------
+  (async () => {
+    await loadAll();
+    resize();
+    // Initialize bucket even before start, so it shows behind the overlay
+    bucket.w = 230;
+    bucket.h = bucket.w * 0.72;
+    bucket.x = W / 2;
+    bucket.targetX = W / 2;
+    bucket.y = H - 140;
+    requestAnimationFrame(loop);
+  })();
+})();
+</script>
+</body>
+</html>
