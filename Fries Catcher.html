@@ -48,21 +48,26 @@
           <div class="title">PAUSED</div>
           <div class="subtitle">Take a breath — the fries will wait.</div>
           <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:8px">
-            <button class="btn" id="resumeBtn">RESUME</button>
-            <button class="btn btn-alt" id="restartBtn">RESTART</button>
-            <button class="btn btn-alt" id="homeBtn">HOME</button>
+            <button class="btn" id="resumeBtn"><img class="ps5-btn-icon" src="assets/PS5_buttons/Cross.svg">RESUME</button>
+            <button class="btn btn-alt" id="restartBtn"><img class="ps5-btn-icon" src="assets/PS5_buttons/Triangle.svg">RESTART</button>
+            <button class="btn btn-alt" id="homeBtn"><img class="ps5-btn-icon" src="assets/PS5_buttons/Circle.svg">HOME</button>
           </div>
         </div>
       </div>
 
       <div class="combo-badge" id="comboBadge">COMBO ×2</div>
 
-      <div class="drag-hint" id="dragHint">🎮 tilt or use stick to move</div>
+      <!-- <div class="drag-hint" id="dragHint">🎮 tilt or use stick to move</div> -->
 
 
       <div class="flash-good" id="flashGood"></div>
       <div class="flash-bad" id="flashBad"></div>
       <div id="countdown"></div>
+
+      <!-- Pre-game controller hint -->
+      <div id="startHint" class="hidden">
+        <img src="assets/Dualsense_Black_1.png" alt="">
+      </div>
 
       <!-- Start overlay -->
       <div class="overlay" id="startScreen">
@@ -76,12 +81,13 @@
             </div>
             <div class="rule bad">
               <div class="swatch sw-worm"></div>
-              <div>Worm → <strong>−3</strong> fries</div>
+              <div>Chilli → <strong>−3</strong> fries</div>
             </div>
           </div>
           <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
             <button class="btn-ds" id="connectBtn">🎮 Connect DualSense</button>
-            <button class="btn" id="startBtn">START</button>
+            <button class="btn-ds" id="speakerBtn" style="display:none">🔊 Select Controller Speaker</button>
+            <button class="btn" id="startBtn"><img class="ps5-btn-icon" src="assets/PS5_buttons/Cross.svg">START</button>
           </div>
  
         </div>
@@ -103,13 +109,29 @@
               <div class="l">Worms Hit</div>
             </div>
           </div>
-          <button class="btn" id="againBtn">PLAY AGAIN</button>
-          <button class="btn btn-alt" id="againHomeBtn" style="margin-left:10px">HOME</button>
+          <div style="display:flex; justify-content:center; margin-top:4px">
+            <button class="btn" id="continueBtn"><img class="ps5-btn-icon" src="assets/PS5_buttons/Cross.svg">CONTINUE</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leaderboard overlay -->
+      <div class="overlay hidden" id="leaderboardScreen">
+        <div class="panel lb-panel">
+          <div class="title">LEADERBOARD</div>
+          <div class="lb-list-wrap" id="lbListWrap">
+            <ol id="lbList" class="lb-list"></ol>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px">
+            <button class="btn lb-action-btn" id="lbAgainBtn"><img class="ps5-btn-icon" src="assets/PS5_buttons/Cross.svg">PLAY AGAIN</button>
+            <button class="btn btn-alt lb-action-btn" id="lbHomeBtn"><img class="ps5-btn-icon" src="assets/PS5_buttons/Circle.svg">HOME</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
+<script src="config.js"></script>
 <script src="dualsense.js"></script>
 <script src="game.js"></script>
 </body>
