@@ -6,7 +6,7 @@ const CONFIG = {
   // ── Debug ─────────────────────────────────────────────────────────────────
   // Set enabled:true to record every game result to localStorage + show CSV download button.
   debug: {
-    enabled: true,
+    enabled: false,
   },
 
   // ── General ──────────────────────────────────────────────────────────────

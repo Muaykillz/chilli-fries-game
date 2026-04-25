@@ -111,6 +111,7 @@ canvas {
 }
 .stop-btn:hover { background: rgba(40, 24, 12, 0.85); transform: translateY(-1px); }
 .stop-btn:active { transform: translateY(1px); }
+.debug-csv-btn.hidden { display: none; }
 
 .btn-alt {
   background: linear-gradient(180deg, #fff6e1 0%, #ffdc9a 100%) !important;

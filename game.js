@@ -807,14 +807,14 @@
 
   // ── PS5 controller shortcuts ──────────────────────────────────────────────
   ds.on('buttondown', (btn) => {
-    if (state === STATES.READY       && btn === 'cross')    startBtn.click();
-    if (state === STATES.PLAYING     && btn === 'options')  stopBtn.click();
-    if (state === STATES.PAUSED      && btn === 'cross')    resumeBtn.click();
-    if (state === STATES.PAUSED      && btn === 'triangle') restartBtn.click();
-    if (state === STATES.PAUSED      && btn === 'circle')   homeBtn.click();
-    if (state === STATES.OVER        && btn === 'cross')    continueBtn.click();
-    if (state === STATES.LEADERBOARD && btn === 'cross')    lbAgainBtn.click();
-    if (state === STATES.LEADERBOARD && btn === 'circle')   lbHomeBtn.click();
+    if      (state === STATES.READY       && btn === 'cross')    startBtn.click();
+    else if (state === STATES.PLAYING     && btn === 'options')  stopBtn.click();
+    else if (state === STATES.PAUSED      && btn === 'cross')    resumeBtn.click();
+    else if (state === STATES.PAUSED      && btn === 'triangle') restartBtn.click();
+    else if (state === STATES.PAUSED      && btn === 'circle')   homeBtn.click();
+    else if (state === STATES.OVER        && btn === 'cross')    continueBtn.click();
+    else if (state === STATES.LEADERBOARD && btn === 'cross')    lbAgainBtn.click();
+    else if (state === STATES.LEADERBOARD && btn === 'circle')   lbHomeBtn.click();
   });
 
   function pauseGame() {
