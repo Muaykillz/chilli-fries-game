@@ -3,9 +3,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 const CONFIG = {
 
+  // ── Debug ─────────────────────────────────────────────────────────────────
+  // Set enabled:true to record every game result to localStorage + show CSV download button.
+  debug: {
+    enabled: true,
+  },
+
   // ── General ──────────────────────────────────────────────────────────────
   game: {
-    duration:       50,    // seconds per round
+    duration:       45,    // seconds per round
     slowmoDuration: 2.5,   // slow-mo seconds after time runs out
   },
 
@@ -31,7 +37,7 @@ const CONFIG = {
   // ── Spawn rate ────────────────────────────────────────────────────────────
   // cooldown = max(minInterval, baseInterval - elapsed × rampRate) × jitter
   spawn: {
-    baseInterval: 1.25,   // seconds between spawns at game start
+    baseInterval: 1.15,   // seconds between spawns at game start
     minInterval:  0.20,   // minimum seconds between spawns (fastest)
     rampRate:     0.026,  // interval reduction per elapsed second
     jitterMin:    0.75,   // random multiplier low bound
@@ -47,14 +53,14 @@ const CONFIG = {
     popupSize:  36,   // font size of +1 popup
   },
 
-  // ── Worm / Chilli ─────────────────────────────────────────────────────────
+  // ── Chilli ─────────────────────────────────────────────────────────
   // chance = chanceBase + min(chanceAdd, elapsed / rampDivisor)
-  worm: {
+  chilli: {
     sizeMin:      86,   // px width min
     sizeMax:     102,   // px width max
     chanceBase:  0.18,  // spawn chance at elapsed=0
-    chanceAdd:   0.14,  // max additional chance over time
-    rampDivisor: 400,   // lower = worm chance ramps faster
+    chanceAdd:   0.24,  // max additional chance over time
+    rampDivisor: 400,   // lower = chilli chance ramps faster
     penalty:       3,   // score deducted on hit
     burstCount:   22,
   },
@@ -68,7 +74,7 @@ const CONFIG = {
     small: {
       size:        124,   // px width — fixed (no random)
       score:         3,
-      chanceMax:  0.09,   // 9 % cap
+      chanceMax:  0.05,   // 6 % cap
       rampDivisor: 572,   // reaches cap at elapsed ≈ 50s
       burstCount:   30,
       popupSize:    66,
@@ -77,7 +83,7 @@ const CONFIG = {
     big: {
       size:        178,   // px width — fixed
       score:         5,
-      chanceMax:  0.05,   // 5 % cap
+      chanceMax:  0.02,   // 3 % cap
       rampDivisor: 1334,  // reaches cap at elapsed ≈ 50s
       burstCount:   50,
       popupSize:    82,

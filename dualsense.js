@@ -91,7 +91,7 @@ class DualSense {
 
   // warm "pop" — lower, triangle wave, less shrill
   playFry()  { this._playTone(370, 540, 0.22, 0.13, 'triangle'); }
-  playWorm() { this._playTone(200,  55, 0.30, 0.20); }
+  playChilli() { this._playTone(200,  55, 0.30, 0.20); }
 
   // Start countdown: escalating 3→2→1, then triumphant GO chime
   playStartTick(n) {
@@ -118,7 +118,7 @@ class DualSense {
     }
   }
 
-  // dramatic bass thump, clearly distinct from fry/worm sounds
+  // dramatic bass thump, clearly distinct from fry/chilli sounds
   // n=1 gets extra high ping layer for maximum impact
   playTick(n) {
     const ctx = this._getAudio();

@@ -39,6 +39,9 @@
           <button class="stop-btn" id="stopBtn" aria-label="Pause" title="Pause">
             <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><rect x="6" y="5" width="4" height="14" fill="currentColor" stroke="none" rx="1"/><rect x="14" y="5" width="4" height="14" fill="currentColor" stroke="none" rx="1"/></svg>
           </button>
+          <button class="stop-btn debug-csv-btn hidden" id="debugCsvBtn" title="Download CSV">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 12-4-4m4 4 4-4"/><rect x="3" y="17" width="18" height="4" rx="1" fill="currentColor" stroke="none" opacity="0.5"/></svg>
+          </button>
         </div>
       </div>
 
@@ -73,14 +76,14 @@
       <div class="overlay" id="startScreen">
         <div class="panel">
           <div class="title">FRIES<br>CATCHER</div>
-          <div class="subtitle">Catch the fries. Dodge the worms.</div>
+          <div class="subtitle">Catch the fries. Dodge the chillis.</div>
           <div class="rules">
             <div class="rule">
               <div class="swatch sw-fry"></div>
               <div>Fries → <strong>+1</strong> fry</div>
             </div>
             <div class="rule bad">
-              <div class="swatch sw-worm"></div>
+              <div class="swatch sw-chilli"></div>
               <div>Chilli → <strong>−3</strong> fries</div>
             </div>
           </div>
@@ -105,8 +108,8 @@
               <div class="l">Best Streak</div>
             </div>
             <div class="stat">
-              <div class="n" id="wormsHit">0</div>
-              <div class="l">Worms Hit</div>
+              <div class="n" id="chillisHit">0</div>
+              <div class="l">Chillis Hit</div>
             </div>
           </div>
           <div style="display:flex; justify-content:center; margin-top:4px">

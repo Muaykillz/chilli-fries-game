@@ -52,8 +52,8 @@ html, body {
   flex-shrink: 0;
 }
 #game.dragging { cursor: grabbing; }
-#game.worm-hit { animation: wormHit 0.55s ease-out; }
-@keyframes wormHit {
+#game.chilli-hit { animation: chilliHit 0.55s ease-out; }
+@keyframes chilliHit {
   0%   { transform: scale(var(--fit-s,1))           translate(0,0);     box-shadow: 0 0 80px rgba(0,0,0,0.6), inset 0 0 0 0   rgba(0,0,0,0); }
   15%  { transform: scale(calc(var(--fit-s,1)*0.96)) translate(-8px,2px); box-shadow: 0 0 80px rgba(0,0,0,0.6), inset 0 0 0 28px rgba(0,0,0,0.72); }
   32%  { transform: scale(calc(var(--fit-s,1)*0.965)) translate(8px,-2px); box-shadow: 0 0 80px rgba(0,0,0,0.6), inset 0 0 0 28px rgba(0,0,0,0.72); }
@@ -280,7 +280,7 @@ canvas {
   flex-shrink: 0;
 }
 .rule .sw-fry { background-image: url('assets/FrenchFries_1.png'); }
-.rule .sw-worm { background-image: url('assets/Chilli_1.png'); }
+.rule .sw-chilli { background-image: url('assets/Chilli_1.png'); }
 .rule strong { color: #c0450f; }
 .rule.bad strong { color: #8a2a0e; }
 

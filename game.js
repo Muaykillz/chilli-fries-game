@@ -20,7 +20,7 @@
   const startBtn    = document.getElementById('startBtn');
   const finalScore  = document.getElementById('finalScore');
   const bestStreak  = document.getElementById('bestStreak');
-  const wormsHit    = document.getElementById('wormsHit');
+  const chillisHit   = document.getElementById('chillisHit');
   const connectBtn       = document.getElementById('connectBtn');
   const continueBtn      = document.getElementById('continueBtn');
   const leaderboardScreen= document.getElementById('leaderboardScreen');
@@ -28,6 +28,42 @@
   const lbList           = document.getElementById('lbList');
   const lbAgainBtn       = document.getElementById('lbAgainBtn');
   const lbHomeBtn        = document.getElementById('lbHomeBtn');
+  const debugCsvBtn      = document.getElementById('debugCsvBtn');
+
+  // ── Debug mode ─────────────────────────────────────────────────────────────
+  const DEBUG_KEY = 'friesCatcher_debugLog';
+
+  if (CONFIG.debug?.enabled) {
+    debugCsvBtn.classList.remove('hidden');
+    debugCsvBtn.addEventListener('click', downloadDebugCSV);
+  }
+
+  function saveDebugRecord() {
+    if (!CONFIG.debug?.enabled) return;
+    const records = JSON.parse(localStorage.getItem(DEBUG_KEY) || '[]');
+    records.push({
+      ts:          new Date().toISOString(),
+      score,
+      bestStreak:  maxStreak,
+      chillisHit:  chillisHitCount,
+      elapsedSec:  Math.round(elapsed),
+    });
+    localStorage.setItem(DEBUG_KEY, JSON.stringify(records));
+  }
+
+  function downloadDebugCSV() {
+    const records = JSON.parse(localStorage.getItem(DEBUG_KEY) || '[]');
+    if (!records.length) { alert('No records yet.'); return; }
+    const headers = Object.keys(records[0]).join(',');
+    const rows    = records.map(r => Object.values(r).join(','));
+    const csv     = [headers, ...rows].join('\n');
+    const blob    = new Blob([csv], { type: 'text/csv' });
+    const url     = URL.createObjectURL(blob);
+    const a       = document.createElement('a');
+    a.href = url; a.download = 'fries_catcher_scores.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function updateLbFade() {
     lbListWrap.classList.toggle('fade-top',    lbList.scrollTop > 4);
@@ -51,18 +87,18 @@
   }
 
   const MOCK_LEADERBOARD = [
-    { name: 'Krit',    score: 102 },
-    { name: 'Prae',    score:  95 },
-    { name: 'TonTon',  score:  89 },
-    { name: 'NamFon',  score:  84 },
-    { name: 'Beam',    score:  79 },
-    { name: 'Golf',    score:  74 },
-    { name: 'Mild',    score:  68 },
-    { name: 'Aom',     score:  62 },
-    { name: 'Nut',     score:  55 },
-    { name: 'Fern',    score:  48 },
-    { name: 'Bank',    score:  41 },
-    { name: 'Joy',     score:  33 },
+    { name: 'ต้นกล้า',    score: 82 },
+    { name: 'ปรีชา',    score:  78 },
+    { name: 'ภู',  score:  73 },
+    { name: 'ติส',  score:  72 },
+    { name: 'ฟีน',    score:  69 },
+    { name: 'เอฟ',    score:  65 },
+    { name: 'เคน',    score:  58 },
+    { name: 'เจมส์',     score:  55 },
+    { name: 'นัท',     score:  54 },
+    { name: 'มิว',    score:  51 },
+    { name: 'บัญชา',    score:  50 },
+    { name: 'จอย',     score:  42 },
   ];
 
   // ---------- DualSense ----------
@@ -92,7 +128,7 @@
   const ASSET_PATHS = {
     bucket: ['assets/Bucket_1.png', 'assets/Bucket_2.png', 'assets/Bucket_3.png', 'assets/Bucket_4.png'],
     fries:  ['assets/FrenchFries_1.png', 'assets/FrenchFries_2.png', 'assets/FrenchFries_3.png', 'assets/FrenchFries_4.png'],
-    worms:  ['assets/Chilli_1.png', 'assets/Chilli_2.png', 'assets/Chilli_3.png', 'assets/Chilli_4.png'],
+    chillis: ['assets/Chilli_1.png', 'assets/Chilli_2.png', 'assets/Chilli_3.png', 'assets/Chilli_4.png'],
     bomb:   ['assets/bombHit_1.gif', 'assets/bombHit_2.gif'],
   };
   const img = (src) => new Promise((res) => {
@@ -101,14 +137,14 @@
     i.onerror = () => res(null);
     i.src = src;
   });
-  const assets = { bucket: [], fries: [], worms: [], bombSrcs: [] };
+  const assets = { bucket: [], fries: [], chillis: [], bombSrcs: [] };
   async function loadAll() {
     const b = await Promise.all(ASSET_PATHS.bucket.map(img));
     const f = await Promise.all(ASSET_PATHS.fries.map(img));
-    const w = await Promise.all(ASSET_PATHS.worms.map(img));
+    const w = await Promise.all(ASSET_PATHS.chillis.map(img));
     assets.bucket   = b.filter(Boolean);
     assets.fries    = f.filter(Boolean);
-    assets.worms    = w.filter(Boolean);
+    assets.chillis    = w.filter(Boolean);
     assets.bombSrcs = ASSET_PATHS.bomb.filter(Boolean);
   }
 
@@ -157,7 +193,7 @@
   let score = 0;
   let streak = 0;
   let maxStreak = 0;
-  let wormsHitCount = 0;
+  let chillisHitCount = 0;
   let timeLeft = CONFIG.game.duration;
   let spawnCooldown = 0;
   let elapsed = 0;
@@ -213,23 +249,23 @@
 
   // ---------- Spawning ----------
   function spawnItem() {
-    const { worm: WC, fry: FC, golden: GC, speed: SC } = CONFIG;
-    const wormChance = WC.chanceBase + Math.min(WC.chanceAdd, elapsed / WC.rampDivisor);
-    const isWorm = Math.random() < wormChance;
+    const { chilli: WC, fry: FC, golden: GC, speed: SC } = CONFIG;
+    const chilliChance = WC.chanceBase + Math.min(WC.chanceAdd, elapsed / WC.rampDivisor);
+    const isChilli = Math.random() < chilliChance;
     const goldenRoll = Math.random();
     const gate = elapsed >= GC.startElapsed;
     const bigChance   = gate ? Math.min(GC.big.chanceMax,   (elapsed - GC.startElapsed) / GC.big.rampDivisor)   : 0;
     const smallChance = gate ? Math.min(GC.small.chanceMax, (elapsed - GC.startElapsed) / GC.small.rampDivisor) : 0;
-    const isGoldenBig   = !isWorm && goldenRoll < bigChance;
-    const isGoldenSmall = !isWorm && !isGoldenBig && goldenRoll < bigChance + smallChance;
+    const isGoldenBig   = !isChilli && goldenRoll < bigChance;
+    const isGoldenSmall = !isChilli && !isGoldenBig && goldenRoll < bigChance + smallChance;
     const isGolden = isGoldenBig || isGoldenSmall;
-    const type = isWorm ? 'worm' : (isGolden ? 'golden' : 'fry');
+    const type = isChilli ? 'chilli' : (isGolden ? 'golden' : 'fry');
 
-    const imgArr = isWorm ? assets.worms : assets.fries;
+    const imgArr = isChilli ? assets.chillis : assets.fries;
     const image = imgArr.length ? pick(imgArr) : null;
 
     let w, h;
-    if (isWorm) {
+    if (isChilli) {
       w = rand(WC.sizeMin, WC.sizeMax);
       const ar = image ? image.naturalHeight / image.naturalWidth : 0.6;
       h = w * ar;
@@ -306,22 +342,22 @@
     setTimeout(() => el.remove(), 900);
   }
 
-  function hitWorm(it) {
-    score = Math.max(0, score - CONFIG.worm.penalty);
+  function hitChilli(it) {
+    score = Math.max(0, score - CONFIG.chilli.penalty);
     streak = 0;
-    wormsHitCount += 1;
+    chillisHitCount += 1;
     bucket.hurt = 1.0;
     updateHUD();
-    burst(it.x, it.y, '#cdd27a', CONFIG.worm.burstCount, true);
-    addPopup(it.x, it.y - 10, `-${CONFIG.worm.penalty}`, '#ff5e5e', 28);
+    burst(it.x, it.y, '#cdd27a', CONFIG.chilli.burstCount, true);
+    addPopup(it.x, it.y - 10, `-${CONFIG.chilli.penalty}`, '#ff5e5e', 28);
     flash(flashBad);
-    game.classList.remove('worm-hit');
+    game.classList.remove('chilli-hit');
     void game.offsetWidth;
-    game.classList.add('worm-hit');
+    game.classList.add('chilli-hit');
     showBombEffect(it.x, bucket.y);
     ds.rumble(255, 200, 220);
-    ds.playWorm();
-    checkCombo('worm');
+    ds.playChilli();
+    checkCombo('chilli');
   }
 
   let fireStreak = 0;
@@ -329,7 +365,7 @@
   let prevFireMult = 0;
   let lastCountdownNum = 0;
   function checkCombo(trigger) {
-    if (trigger === 'worm') {
+    if (trigger === 'chilli') {
       fireActive = false;
       fireStreak = 0;
       prevFireMult = 0;
@@ -371,17 +407,17 @@
     ds.playTick(n);
   }
 
-  function burst(x, y, color, n, worm=false) {
+  function burst(x, y, color, n, isChilli=false) {
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
-      const s = rand(worm ? 80 : 50, worm ? 220 : 160);
+      const s = rand(isChilli ? 80 : 50, isChilli ? 220 : 160);
       particles.push({
         x, y,
         vx: Math.cos(a) * s,
-        vy: Math.sin(a) * s - (worm ? 30 : 80),
+        vy: Math.sin(a) * s - (isChilli ? 30 : 80),
         life: 0, maxLife: rand(0.45, 0.85),
-        size: rand(3, worm ? 7 : 5),
-        color, type: worm ? 'worm' : 'fry',
+        size: rand(3, isChilli ? 7 : 5),
+        color, type: isChilli ? 'chilli' : 'fry',
       });
     }
   }
@@ -496,7 +532,7 @@
         it.alive = false;
         if (it.type === 'fry') catchFry(it);
         else if (it.type === 'golden') catchGolden(it);
-        else hitWorm(it);
+        else hitChilli(it);
       } else if (it.y - it.h/2 > H + 20) {
         it.alive = false;
         if (it.type === 'fry' || it.type === 'golden') {
@@ -642,7 +678,7 @@
     score = 0;
     streak = 0;
     maxStreak = 0;
-    wormsHitCount = 0;
+    chillisHitCount = 0;
     timeLeft = CONFIG.game.duration;
     elapsed = 0;
     spawnCooldown = CONFIG.spawn.baseInterval;
@@ -697,10 +733,11 @@
     tick();
   }
   function endGame() {
+    saveDebugRecord();
     state = STATES.OVER;
     finalScore.textContent = score;
     bestStreak.textContent = maxStreak;
-    wormsHit.textContent = wormsHitCount;
+    chillisHit.textContent = chillisHitCount;
     endScreen.classList.remove('hidden');
   }
 
